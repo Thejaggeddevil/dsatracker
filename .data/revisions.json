@@ -1,0 +1,68 @@
+{
+  "a1c7a9502054455a650d2f91": {
+    "id": "a1c7a9502054455a650d2f91",
+    "submissionId": "7481639d9c5b60fc92633b67",
+    "userId": "6852bb85e34cd4cd0ff4fabe",
+    "scheduledDate": "2026-02-08",
+    "revisionNumber": 1,
+    "points": 2,
+    "completedDate": "2026-02-08",
+    "lastRevisedAt": "2026-02-08T02:13:44.799Z"
+  },
+  "05491c047e777c34cc19cfd1": {
+    "id": "05491c047e777c34cc19cfd1",
+    "submissionId": "7481639d9c5b60fc92633b67",
+    "userId": "6852bb85e34cd4cd0ff4fabe",
+    "scheduledDate": "2026-02-10",
+    "revisionNumber": 2,
+    "points": 2
+  },
+  "42201d21f00348150921e36f": {
+    "id": "42201d21f00348150921e36f",
+    "submissionId": "7481639d9c5b60fc92633b67",
+    "userId": "6852bb85e34cd4cd0ff4fabe",
+    "scheduledDate": "2026-02-14",
+    "revisionNumber": 3,
+    "points": 2
+  },
+  "b4e2848871391f7215b5ab6e": {
+    "id": "b4e2848871391f7215b5ab6e",
+    "submissionId": "7481639d9c5b60fc92633b67",
+    "userId": "6852bb85e34cd4cd0ff4fabe",
+    "scheduledDate": "2026-02-28",
+    "revisionNumber": 4,
+    "points": 2
+  },
+  "5e5e302c-2143-4abc-8f9b-3a5415af3323": {
+    "id": "5e5e302c-2143-4abc-8f9b-3a5415af3323",
+    "submissionId": "4a63a6db-a110-44ad-9a63-f8bb89d863c3",
+    "userId": "AU7lgudybeYuWon4fK99jAe9gG12",
+    "scheduledDate": "2026-02-14",
+    "revisionNumber": 1,
+    "points": 2
+  },
+  "68a08bcd-e3c2-4448-af40-ec71d100f81c": {
+    "id": "68a08bcd-e3c2-4448-af40-ec71d100f81c",
+    "submissionId": "4a63a6db-a110-44ad-9a63-f8bb89d863c3",
+    "userId": "AU7lgudybeYuWon4fK99jAe9gG12",
+    "scheduledDate": "2026-02-16",
+    "revisionNumber": 2,
+    "points": 2
+  },
+  "db492abc-7f2d-4ee5-8f11-1bb726d59296": {
+    "id": "db492abc-7f2d-4ee5-8f11-1bb726d59296",
+    "submissionId": "4a63a6db-a110-44ad-9a63-f8bb89d863c3",
+    "userId": "AU7lgudybeYuWon4fK99jAe9gG12",
+    "scheduledDate": "2026-02-20",
+    "revisionNumber": 3,
+    "points": 2
+  },
+  "5a3476f3-6464-44ea-accb-8ab2510802d4": {
+    "id": "5a3476f3-6464-44ea-accb-8ab2510802d4",
+    "submissionId": "4a63a6db-a110-44ad-9a63-f8bb89d863c3",
+    "userId": "AU7lgudybeYuWon4fK99jAe9gG12",
+    "scheduledDate": "2026-03-06",
+    "revisionNumber": 4,
+    "points": 2
+  }
+}
