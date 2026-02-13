@@ -25,4 +25,5 @@ dist-ssr
 
 .config/
 !.env
+server/
 serviceAccountKey.json
