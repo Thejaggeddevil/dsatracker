@@ -28,7 +28,8 @@ export function createServer() {
   app.post("/api/submissions/submit", verifyFirebaseToken, handleSubmitQuestion);
   app.get("/api/submissions/list", verifyFirebaseToken, handleGetSubmissions);
   app.get("/api/streak", verifyFirebaseToken, handleGetStreak);
-  app.delete("/submissions/:id",  handleDeleteSubmission);
+  app.delete("/api/submissions/:id", verifyFirebaseToken, handleDeleteSubmission);
+
 
   // Revision routes
   app.get("/api/revisions/due", verifyFirebaseToken, handleGetDueRevisions);

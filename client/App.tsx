@@ -22,6 +22,8 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 
 import { playClickSound, unlockAudio } from "@/lib/sound";
+import ScrollToTop from "./components/ScrollToTop";
+import { ThemeProvider } from "@/components/ThemeProvider"; // ✅ IMPORTANT
 
 const queryClient = new QueryClient();
 
@@ -81,7 +83,8 @@ const App = () => {
         <Sonner />
 
         <BrowserRouter>
-          {/* ✅ Show loader while auth resolves instead of returning null */}
+          <ScrollToTop />
+
           {authLoading ? (
             <div className="min-h-screen flex items-center justify-center">
               <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -145,4 +148,9 @@ const App = () => {
   );
 };
 
-createRoot(document.getElementById("root")!).render(<App />);
+/* ✅ Wrap App with ThemeProvider */
+createRoot(document.getElementById("root")!).render(
+  <ThemeProvider>
+    <App />
+  </ThemeProvider>
+);

@@ -1,5 +1,6 @@
 /** @import must precede all other statements */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -11,6 +12,38 @@
    * Light mode: Blue-based professional colors
    * Dark mode: Adjusted, subtle colors (no vibrant/eye-catching)
   */
+/* Gradient animation */
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientMove 6s ease infinite alternate;
+}
+
+/* Light mode glow */
+.logo-glow {
+  text-shadow:
+    0 0 8px rgba(59,130,246,0.4),
+    0 0 16px rgba(99,102,241,0.3);
+}
+
+/* Stronger glow in dark mode */
+.dark .logo-glow {
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.3),
+    0 0 20px rgba(99,102,241,0.5),
+    0 0 30px rgba(168,85,247,0.4);
+}
+
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientMove 6s linear infinite alternate;
+}
+
   :root {
     /* Light mode - Blue primary */
     --background: 0 0% 100%;
@@ -58,48 +91,50 @@
   }
 
   .dark {
-  /* Dark mode - pure black & white with dark purple accents */
-  --background: 0 0% 0%;              /* #000000 */
-  --foreground: 0 0% 100%;            /* #FFFFFF */
+  /* LeetCode-style dark theme */
 
-  --card: 270 96% 8%;                 /* #1A0129 */
-  --card-foreground: 0 0% 100%;       /* #FFFFFF */
 
-  --popover: 270 96% 8%;               /* #1A0129 */
-  --popover-foreground: 0 0% 100%;    /* #FFFFFF */
+  --background: 222 14% 8%;        /* #0f0f0f */
+  --foreground: 0 0% 95%;          /* soft white */
 
-  --primary: 0 0% 100%;               /* #FFFFFF */
-  --primary-foreground: 0 0% 0%;      /* #000000 */
+  --card: 222 14% 12%;             /* dark grey container */
+  --card-foreground: 0 0% 95%;
 
-  --secondary: 270 96% 8%;             /* #1A0129 */
-  --secondary-foreground: 0 0% 100%;  /* #FFFFFF */
+  --popover: 222 14% 12%;
+  --popover-foreground: 0 0% 95%;
 
-  --muted: 270 96% 8%;                 /* #1A0129 */
-  --muted-foreground: 0 0% 75%;       /* softer white */
+  --primary: 142 60% 45%;          /* green accent */
+  --primary-foreground: 0 0% 100%;
 
-  --accent: 270 96% 8%;                /* #1A0129 */
-  --accent-foreground: 0 0% 100%;     /* #FFFFFF */
+  --secondary: 222 14% 18%;        /* lighter grey */
+  --secondary-foreground: 0 0% 95%;
 
-  --destructive: 0 72% 50.6%;
+  --muted: 222 14% 16%;
+  --muted-foreground: 0 0% 65%;
+
+  --accent: 222 14% 18%;
+  --accent-foreground: 0 0% 95%;
+
+  --destructive: 0 62% 45%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 270 96% 8%;                /* #1A0129 */
-  --input: 270 96% 8%;                 /* #1A0129 */
-  --ring: 0 0% 100%;                   /* #FFFFFF */
+  --border: 222 14% 20%;
+  --input: 222 14% 18%;
+  --ring: 142 60% 45%;
 
-  /* Green for success/streak (kept readable on black) */
   --success: 142 60% 45%;
   --success-light: 142 60% 55%;
 
-  --sidebar-background: 0 0% 0%;       /* #000000 */
-  --sidebar-foreground: 0 0% 100%;    /* #FFFFFF */
-  --sidebar-primary: 0 0% 100%;       /* #FFFFFF */
-  --sidebar-primary-foreground: 0 0% 0%;
-  --sidebar-accent: 270 96% 8%;        /* #1A0129 */
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 270 96% 8%;        /* #1A0129 */
-  --sidebar-ring: 0 0% 100%;           /* #FFFFFF */
+  --sidebar-background: 222 14% 10%;
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-primary: 142 60% 45%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 222 14% 18%;
+  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-border: 222 14% 20%;
+  --sidebar-ring: 142 60% 45%;
 }
+
 }
 
 @layer base {

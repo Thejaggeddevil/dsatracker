@@ -3,16 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Flame, Zap, Target, TrendingUp } from 'lucide-react';
-
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import LogoImage from '@/image/fire.png';
 export default function Index() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect to home if already authenticated
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      navigate('/home');
-    }
+    // Proper Firebase auth check
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // If already logged in → go to home
+        navigate('/home', { replace: true });
+      }
+    });
+
+    return () => unsubscribe();
   }, [navigate]);
 
   return (
@@ -23,7 +29,11 @@ export default function Index() {
           <div className="max-w-3xl text-center">
             <div className="flex justify-center mb-6">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-success/20 to-success-light/20">
-                <Flame className="w-12 h-12 text-success" />
+                <img
+                                src={LogoImage}
+                               alt="App Logo"
+                                  className="w-16 h-16 mx-auto mb-4"
+                              />
               </div>
             </div>
 
@@ -82,7 +92,7 @@ export default function Index() {
                   <h3 className="font-semibold">Secure & Professional</h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Production-grade security with hashed passwords, JWT authentication, and secure session management.
+                  Production-grade security with Firebase Authentication and secure session management.
                 </p>
               </div>
             </div>
@@ -132,7 +142,7 @@ export default function Index() {
                 <div>
                   <h3 className="font-semibold mb-2">Revise & Reinforce</h3>
                   <p className="text-muted-foreground">
-                    Questions automatically schedule for revision at 1, 3, 7, and 21 days. Mark them as done to earn bonus points.
+                    Questions automatically schedule for revision at 1, 3, 7, and 21 days. Mark them as done .
                   </p>
                 </div>
               </div>
@@ -159,7 +169,7 @@ export default function Index() {
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-6">Ready to Build Your Streak?</h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Join hundreds of engineers mastering DSA through consistent, honest practice.
+              Join engineers mastering DSA through consistent, honest practice.
             </p>
             <Button size="lg" onClick={() => navigate('/signup')} className="text-base">
               Start Your Streak Now

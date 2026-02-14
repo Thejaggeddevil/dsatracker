@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Download, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
-import ClickSpark from '@/components/ClickSpark';
+
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import ClickSpark from "@/components/ClickSpark";
 
 interface User {
   id: string;
@@ -167,6 +168,7 @@ const Settings = () => {
   }
 
   return (
+    <ClickSpark sparkColor="rgba(10,108,199,0.8)" sparkCount={10} sparkRadius={20} duration={500}>
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <h1 className="text-3xl font-bold mb-8">Settings</h1>
@@ -189,7 +191,7 @@ const Settings = () => {
             </div>
 
             <div>
-              <Label htmlFor="email">Email (Read-only)</Label>
+              <Label htmlFor="email">Email </Label>
               <Input
                 id="email"
                 type="email"
@@ -198,7 +200,7 @@ const Settings = () => {
                 className="mt-2 bg-secondary/50"
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Email cannot be changed. This is your account identifier.
+                Email cannot be changed.
               </p>
             </div>
 
@@ -215,24 +217,7 @@ const Settings = () => {
           </form>
         </div>
 
-        {/* Data Management Section */}
-        <div className="rounded-lg border border-border bg-card p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-6">Data & Privacy</h2>
-
-          <div className="space-y-3">
-            <Button
-              onClick={handleDownloadData}
-              variant="outline"
-              className="w-full justify-start"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download My Data
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Export your profile information as JSON. This feature is for data portability and backup purposes.
-            </p>
-          </div>
-        </div>
+       
 
         {/* Account Section */}
         <div className="rounded-lg border border-border bg-card p-6 mb-6">
@@ -248,18 +233,9 @@ const Settings = () => {
           </Button>
         </div>
 
-        {/* Security Info */}
-        <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-          <h3 className="font-medium text-sm mb-2">🔒 Security & Privacy</h3>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li>✓ Your password is securely hashed using PBKDF2</li>
-            <li>✓ Passwords are never stored in plain text</li>
-            <li>✓ Sessions expire after 7 days of inactivity</li>
-            <li>✓ Your data is private and never shared</li>
-          </ul>
-        </div>
       </div>
     </Layout>
+    </ClickSpark>
   );
 };
 

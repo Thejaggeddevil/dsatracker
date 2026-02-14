@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
-import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle2 } from 'lucide-react';
-import { toast } from 'sonner';
-import ClickSpark from '@/components/ClickSpark';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Loader2, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import ClickSpark from "@/components/ClickSpark";
 import { auth } from "@/lib/firebase";
 
 interface DueRevision {
@@ -16,19 +16,30 @@ interface DueRevision {
   revisionNumber: number;
   scheduledDate: string;
   daysSinceLastRevision: number;
+  questionLink?: string;
+}
+
+interface RevisionHistoryItem extends DueRevision {
+  revisedAt: string;
+  note?: string;
 }
 
 const Revisions = () => {
   const navigate = useNavigate();
+
   const [revisions, setRevisions] = useState<DueRevision[]>([]);
+  const [revisionHistory, setRevisionHistory] = useState<RevisionHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingRevision, setMarkingRevision] = useState<string | null>(null);
 
-  // 🔥 Proper Firebase Auth Init
+  const [editingNote, setEditingNote] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+
+  // 🔥 Auth Init
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) {
-        navigate('/login');
+        navigate("/login");
         return;
       }
 
@@ -41,77 +52,125 @@ const Revisions = () => {
 
   const loadDueRevisions = async (token: string) => {
     try {
-      const response = await fetch('/api/revisions/due', {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await fetch("/api/revisions/due", {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to load revisions');
-      }
+      if (!response.ok) throw new Error(data.message);
 
       if (data.success) {
         setRevisions(data.revisions || []);
       }
     } catch (error) {
-      console.error('Error loading revisions:', error);
-      toast.error('Failed to load revisions');
+      toast.error("Failed to load revisions");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMarkRevision = async (revisionId: string) => {
-    setMarkingRevision(revisionId);
+  // ✅ MARK REVISION
+  const handleMarkRevision = async (revision: DueRevision) => {
+    setMarkingRevision(revision.id);
 
     try {
       const user = auth.currentUser;
-      if (!user) {
-        navigate('/login');
-        return;
-      }
+      if (!user) return;
 
       const token = await user.getIdToken();
 
-      const response = await fetch('/api/revisions/mark', {
-        method: 'POST',
+      const response = await fetch("/api/revisions/mark", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ revisionId })
+        body: JSON.stringify({ revisionId: revision.id }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to mark revision');
-      }
+      if (!response.ok) throw new Error(data.message);
 
       toast.success(`Revision marked! +${data.pointsEarned} points`);
 
-      // Remove completed revision from UI
-      setRevisions(prev => prev.filter(r => r.id !== revisionId));
+      // Move to history
+      const historyItem: RevisionHistoryItem = {
+        ...revision,
+        revisedAt: new Date().toISOString(),
+        note: notes[revision.id] || "",
+      };
+
+      setRevisionHistory((prev) => [historyItem, ...prev]);
+      setRevisions((prev) => prev.filter((r) => r.id !== revision.id));
 
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || 'Something went wrong');
+      toast.error(error.message || "Something went wrong");
     } finally {
       setMarkingRevision(null);
     }
   };
 
+  // ✅ SAVE NOTE
+  const saveNote = async (revisionId: string) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const token = await user.getIdToken();
+
+      await fetch("/api/revisions/note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          revisionId,
+          note: notes[revisionId],
+        }),
+      });
+
+      toast.success("Note saved");
+      setEditingNote(null);
+    } catch {
+      toast.error("Failed to save note");
+    }
+  };
+
+  const deleteNote = async (revisionId: string) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const token = await user.getIdToken();
+
+      await fetch(`/api/revisions/note/${revisionId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setNotes((prev) => {
+        const updated = { ...prev };
+        delete updated[revisionId];
+        return updated;
+      });
+
+      toast.success("Note deleted");
+    } catch {
+      toast.error("Failed to delete note");
+    }
+  };
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950';
-      case 'medium':
-        return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950';
-      case 'hard':
-        return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950';
+      case "easy":
+        return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950";
+      case "medium":
+        return "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950";
+      case "hard":
+        return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950";
       default:
-        return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950';
+        return "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950";
     }
   };
 
@@ -126,88 +185,130 @@ const Revisions = () => {
   }
 
   return (
+    <ClickSpark sparkColor="rgba(10,108,199,0.8)" sparkCount={10} sparkRadius={20} duration={500}>
     <Layout>
-      <ClickSpark sparkColor="rgba(10, 108, 199, 0.8)" sparkCount={10} sparkRadius={20} duration={500} />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="text-3xl font-bold mb-2">Due Revisions</h1>
-        <p className="text-muted-foreground mb-8">
-          Questions scheduled for review today - keep your learning fresh!
-        </p>
+      
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <h1 className="text-3xl font-bold mb-2">Due Revisions</h1>
 
-        {revisions.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card p-8 text-center">
-            <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2">No revisions due today!</p>
-            <p className="text-muted-foreground">
-              Great work! Keep practicing to schedule future revisions.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {revisions.map((revision) => (
-              <div
-                key={revision.id}
-                className="rounded-lg border border-border bg-card p-4 hover:bg-secondary/50 transition-colors"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-semibold px-2 py-1 rounded-full bg-primary/10 text-primary">
-                        R{revision.revisionNumber}
-                      </span>
-                      <h3 className="font-semibold text-base">{revision.questionName}</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span
-                        className={`text-xs px-2.5 py-1 rounded-full font-medium ${getDifficultyColor(
-                          revision.difficulty
-                        )}`}
-                      >
-                        {revision.difficulty}
-                      </span>
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-secondary text-secondary-foreground">
-                        {revision.topic}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {revision.daysSinceLastRevision} days since last solved
-                    </p>
-                  </div>
-
-                  <Button
-                    onClick={() => handleMarkRevision(revision.id)}
-                    disabled={markingRevision === revision.id}
-                    className="sm:whitespace-nowrap"
+          {/* DUE REVISIONS */}
+          {revisions.length === 0 ? (
+            <div className="rounded-lg border border-border bg-card p-8 text-center">
+              <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
+              <p>No revisions due today!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {revisions.map((revision) => (
+                <div
+                  key={revision.id}
+                  className="rounded-lg border border-border bg-card p-4"
+                >
+                  <a
+                    href={revision.questionLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold hover:underline"
                   >
-                    {markingRevision === revision.id ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Marking...
-                      </>
-                    ) : (
-                      'Mark Revised'
-                    )}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                    {revision.questionName}
+                  </a>
 
-        <div className="mt-8 p-4 rounded-lg bg-secondary/50 border border-border">
-          <h4 className="font-medium text-sm mb-2">Revision Schedule</h4>
-          <p className="text-xs text-muted-foreground mb-3">
-            Each question is scheduled for 4 revisions:
-          </p>
-          <ul className="text-xs text-muted-foreground space-y-1 grid grid-cols-2 gap-2">
-            <li>• R1: 1 day after solving</li>
-            <li>• R2: 3 days after solving</li>
-            <li>• R3: 7 days after solving</li>
-            <li>• R4: 21 days after solving</li>
-          </ul>
+                  {/* NOTE SECTION */}
+                  {editingNote === revision.id ? (
+                    <div className="mt-2 space-y-2">
+                      <textarea
+                        value={notes[revision.id] || ""}
+                        onChange={(e) =>
+                          setNotes((prev) => ({
+                            ...prev,
+                            [revision.id]: e.target.value,
+                          }))
+                        }
+                        className="w-full border rounded p-2 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveNote(revision.id)}>
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingNote(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-sm">
+                      {notes[revision.id] ? (
+                        <>
+                          <p>{notes[revision.id]}</p>
+                          <div className="flex gap-3 text-xs mt-1">
+                            <button onClick={() => setEditingNote(revision.id)}>
+                              Edit
+                            </button>
+                            <button onClick={() => deleteNote(revision.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <button
+                          className="text-xs"
+                          onClick={() => setEditingNote(revision.id)}
+                        >
+                          + Add Note
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-3">
+                    <Button
+                      onClick={() => handleMarkRevision(revision)}
+                      disabled={markingRevision === revision.id}
+                    >
+                      {markingRevision === revision.id ? "Marking..." : "Mark Revised"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* REVISION HISTORY */}
+          {revisionHistory.length > 0 && (
+            <div className="mt-10">
+              <h2 className="text-xl font-semibold mb-3">Revision History</h2>
+
+              <div className="space-y-3">
+                {revisionHistory.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-border bg-card p-4"
+                  >
+                    <a
+                      href={item.questionLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold hover:underline"
+                    >
+                      {item.questionName}
+                    </a>
+
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Revised on {new Date(item.revisedAt).toLocaleDateString()}
+                    </p>
+
+                    {item.note && (
+                      <p className="text-sm mt-2">{item.note}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      
     </Layout>
+    </ClickSpark>
   );
 };
 

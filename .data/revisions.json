@@ -39,7 +39,9 @@
     "userId": "AU7lgudybeYuWon4fK99jAe9gG12",
     "scheduledDate": "2026-02-14",
     "revisionNumber": 1,
-    "points": 2
+    "points": 2,
+    "completedDate": "2026-02-14",
+    "lastRevisedAt": "2026-02-14T08:40:03.478Z"
   },
   "68a08bcd-e3c2-4448-af40-ec71d100f81c": {
     "id": "68a08bcd-e3c2-4448-af40-ec71d100f81c",

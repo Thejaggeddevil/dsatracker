@@ -24,6 +24,7 @@ interface Streak {
   lastSubmissionDate?: string;
 }
 
+
 const Home = () => {
   const navigate = useNavigate();
   
@@ -32,8 +33,10 @@ const Home = () => {
   const [submitting, setSubmitting] = useState(false);
 
   // Form state
-  const [questionName, setQuestionName] = useState('');
-  const [platform, setPlatform] = useState('');
+ const [questionName, setQuestionName] = useState('');
+const [questionLink, setQuestionLink] = useState('');
+const [platform, setPlatform] = useState('');
+
   const [difficulty, setDifficulty] = useState('');
   const [topic, setTopic] = useState('');
   const [solveType, setSolveType] = useState('');
@@ -88,11 +91,20 @@ useEffect(() => {
     setSubmitting(true);
 
     // Validation
-    if (!questionName || !platform || !difficulty || !topic || !solveType) {
+    if (!questionName || !questionLink || !platform || !difficulty || !topic || !solveType){
+
       toast.error('All fields are required');
       setSubmitting(false);
       return;
     }
+ 
+
+if (!questionLink.startsWith("http")) {
+  toast.error("Please enter a valid link");
+  setSubmitting(false);
+  return;
+}
+
 
     const token = await auth.currentUser?.getIdToken();
 
@@ -107,6 +119,7 @@ useEffect(() => {
         },
         body: JSON.stringify({
           questionName,
+          questionLink,
           platform,
           difficulty,
           topic,
@@ -130,6 +143,7 @@ useEffect(() => {
 
       // Reset form
       setQuestionName('');
+      setQuestionLink('');
       setPlatform('');
       setDifficulty('');
       setTopic('');
@@ -141,6 +155,7 @@ useEffect(() => {
       setSubmitting(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -154,9 +169,10 @@ useEffect(() => {
   }
 
   return (
+    <ClickSpark sparkColor="rgba(10, 108, 199, 0.8)" sparkCount={10} sparkRadius={20} duration={500}>
   <Layout>
 
-      <ClickSpark sparkColor="rgba(10, 108, 199, 0.8)" sparkCount={10} sparkRadius={20} duration={500}>
+      
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Streak Card */}
           <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -181,14 +197,7 @@ useEffect(() => {
               <p className="text-xs text-muted-foreground mt-2">days</p>
             </div>
 
-            {/* Total Points */}
-            <div className="rounded-xl border border-border bg-card p-6">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Points</h3>
-              <p className="text-4xl font-bold text-accent">
-                {streak?.totalPoints ?? 0}
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">earned</p>
-            </div>
+           
           </div>
 
           {/* Alert if already submitted */}
@@ -219,15 +228,27 @@ useEffect(() => {
                   placeholder="e.g., Two Sum, Longest Substring Without Repeating"
                   value={questionName}
                   onChange={(e) => setQuestionName(e.target.value)}
-                  disabled={submitting || submittedToday}
+                  disabled={submitting}
                   className="mt-2"
                 />
               </div>
+              <div>
+  <Label htmlFor="questionLink">Question Link</Label>
+  <Input
+    id="questionLink"
+    placeholder="Paste problem link (e.g., https://leetcode.com/...)"
+    value={questionLink}
+    onChange={(e) => setQuestionLink(e.target.value)}
+    disabled={submitting}
+    className="mt-2"
+  />
+</div>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="platform">Platform</Label>
-                  <Select value={platform} onValueChange={setPlatform} disabled={submitting || submittedToday}>
+                  <Select value={platform} onValueChange={setPlatform}disabled={submitting}>
                     <SelectTrigger id="platform" className="mt-2">
                       <SelectValue placeholder="Select platform" />
                     </SelectTrigger>
@@ -241,7 +262,7 @@ useEffect(() => {
 
                 <div>
                   <Label htmlFor="difficulty">Difficulty</Label>
-                  <Select value={difficulty} onValueChange={setDifficulty} disabled={submitting || submittedToday}>
+                  <Select value={difficulty} onValueChange={setDifficulty} disabled={submitting}>
                     <SelectTrigger id="difficulty" className="mt-2">
                       <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
@@ -256,7 +277,7 @@ useEffect(() => {
 
               <div>
                 <Label htmlFor="topic">Topic</Label>
-                <Select value={topic} onValueChange={setTopic} disabled={submitting || submittedToday}>
+                <Select value={topic} onValueChange={setTopic} disabled={submitting}>
                   <SelectTrigger id="topic" className="mt-2">
                     <SelectValue placeholder="Select topic" />
                   </SelectTrigger>
@@ -277,7 +298,7 @@ useEffect(() => {
 
               <div>
                 <Label htmlFor="solveType">How did you solve it?</Label>
-                <Select value={solveType} onValueChange={setSolveType} disabled={submitting || submittedToday}>
+                <Select value={solveType} onValueChange={setSolveType} disabled={submitting}>
                   <SelectTrigger id="solveType" className="mt-2">
                     <SelectValue placeholder="Select solve type" />
                   </SelectTrigger>
@@ -287,15 +308,13 @@ useEffect(() => {
                     <SelectItem value="solution">Saw solution</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Be honest! Points are awarded based on your actual performance.
-                </p>
+                
               </div>
 
               <Button
                 type="submit"
                 className="w-full mt-6"
-                disabled={submitting || submittedToday}
+                disabled={submitting}
                 size="lg"
               >
                 {submitting ? (
@@ -313,28 +332,20 @@ useEffect(() => {
           </div>
 
           {/* Info Box */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-              <h4 className="font-medium text-sm mb-2">📋 What happens next?</h4>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>✓ Your question is saved with timestamp</li>
-                <li>✓ Revisions scheduled (1, 3, 7, 21 days)</li>
-                <li>✓ Points awarded based on difficulty & approach</li>
-              </ul>
-            </div>
+        
 
             <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-              <h4 className="font-medium text-sm mb-2">🎯 Streak Rules</h4>
+              <h4 className="font-medium text-sm mb-2"> Streak Rules</h4>
               <ul className="text-xs text-muted-foreground space-y-1">
-                <li>✓ One submission per day counts</li>
                 <li>✓ Locked to calendar day</li>
                 <li>✓ Miss a day = streak resets</li>
               </ul>
             </div>
-          </div>
+          
         </div>
-      </ClickSpark>
+      
     </Layout>
+    </ClickSpark>
   );
 };
 

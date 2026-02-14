@@ -4,11 +4,13 @@ import { db } from "../firebaseAdmin";
 
 const SubmissionSchema = z.object({
   questionName: z.string().min(1).max(500),
+  questionLink: z.string().url().min(5),
   platform: z.enum(["leetcode", "gfg", "other"]),
   difficulty: z.enum(["easy", "medium", "hard"]),
   topic: z.string().min(1).max(100),
   solveType: z.enum(["self", "hint", "solution"]),
 });
+
 
 /* ================================
    HELPERS
@@ -45,13 +47,16 @@ export const handleSubmitQuestion: RequestHandler = async (req: any, res) => {
     const today = getTodayDate();
     const submissionId = crypto.randomUUID();
 
-    const {
-      questionName,
-      platform,
-      difficulty,
-      topic,
-      solveType,
-    } = validation.data;
+    
+  const {
+  questionName,
+  questionLink,
+  platform,
+  difficulty,
+  topic,
+  solveType,
+} = validation.data;
+
 
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
@@ -76,17 +81,17 @@ export const handleSubmitQuestion: RequestHandler = async (req: any, res) => {
     /* ========================
        SAVE SUBMISSION
     ========================= */
-
-    await userRef.collection("submissions").doc(submissionId).set({
-      id: submissionId,
-      questionName,
-      platform,
-      difficulty,
-      topic,
-      solveType,
-      submittedAt: new Date(),
-      submittedDate: today,
-    });
+await userRef.collection("submissions").doc(submissionId).set({
+  id: submissionId,
+  questionName,
+  questionLink,   // ✅ add this
+  platform,
+  difficulty,
+  topic,
+  solveType,
+  submittedAt: new Date(),
+  submittedDate: today,
+});
 
     /* ========================
        UPDATE STREAK
