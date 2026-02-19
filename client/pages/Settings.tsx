@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Download, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
-
+import { apiFetch } from "@/lib/api";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import ClickSpark from "@/components/ClickSpark";
@@ -49,7 +49,7 @@ const Settings = () => {
 
   const loadProfile = async (token: string) => {
     try {
-      const response = await fetch('/api/profile', {
+      const response = await apiFetch('/api/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -91,7 +91,7 @@ const Settings = () => {
 
       const token = await firebaseUser.getIdToken();
 
-      const response = await fetch('/api/profile', {
+      const response = await apiFetch('/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -4,7 +4,7 @@ import cors from "cors";
 
 import { handleDemo } from "./routes/demo";
 import { handleSubmitQuestion, handleGetStreak, handleGetSubmissions, handleDeleteSubmission } from "./routes/submissions";
-import { handleGetDueRevisions, handleMarkRevision, handleGetRevisionHistory } from "./routes/revisions";
+import { handleGetDueRevisions, handleMarkRevision, handleGetRevisionHistory, handleSaveRevisionNote, handleDeleteRevisionNote } from "./routes/revisions";
 import { handleGetProfile, handleUpdateProfile } from "./routes/profile";
 import { initDatabase } from "./db/database";
 import { verifyFirebaseToken } from "./middleware/verifyFirebaseToken";
@@ -16,7 +16,16 @@ export function createServer() {
   initDatabase();
 
   // Global Middleware
-  app.use(cors());
+  app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // local
+      "https://your-vercel-domain.vercel.app", // temporary placeholder
+    ],
+    credentials: true,
+  })
+);
+
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -35,6 +44,10 @@ export function createServer() {
   app.get("/api/revisions/due", verifyFirebaseToken, handleGetDueRevisions);
   app.post("/api/revisions/mark", verifyFirebaseToken, handleMarkRevision);
   app.get("/api/revisions/history", verifyFirebaseToken, handleGetRevisionHistory);
+  app.post("/api/revisions/note", verifyFirebaseToken, handleSaveRevisionNote);
+app.delete("/api/revisions/note/:id", verifyFirebaseToken, handleDeleteRevisionNote);
+
+
 
   // Profile routes
   app.get("/api/profile", verifyFirebaseToken, handleGetProfile);

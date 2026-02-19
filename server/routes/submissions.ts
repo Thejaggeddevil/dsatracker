@@ -2,22 +2,46 @@ import { RequestHandler } from "express";
 import { z } from "zod";
 import { db } from "../firebaseAdmin";
 
+/* ================================
+   SCHEMA
+================================ */
+
 const SubmissionSchema = z.object({
   questionName: z.string().min(1).max(500),
+
   questionLink: z.string().url().min(5),
-  platform: z.enum(["leetcode", "gfg", "other"]),
-  difficulty: z.enum(["easy", "medium", "hard"]),
+
+  platform: z.union([
+    z.enum(["leetcode", "gfg", "other"]),
+    z.string().min(1).max(50)
+  ]),
+
+  difficulty: z.union([
+    z.enum(["easy", "medium", "hard"]),
+    z.string().min(1).max(20)
+  ]),
+
   topic: z.string().min(1).max(100),
-  solveType: z.enum(["self", "hint", "solution"]),
+
+  solveType: z.union([
+    z.enum(["self", "hint", "solution"]),
+    z.string().min(1).max(50)
+  ]),
+
+  method: z.string().min(1),
 });
 
 
 /* ================================
-   HELPERS
+   HELPERS (SAFE IST)
 ================================ */
 
 function getTodayDate(): string {
-  return new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const istDate = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+  );
+  return istDate.toISOString().split("T")[0];
 }
 
 function addDays(date: string, days: number): string {
@@ -47,23 +71,20 @@ export const handleSubmitQuestion: RequestHandler = async (req: any, res) => {
     const today = getTodayDate();
     const submissionId = crypto.randomUUID();
 
-    
-  const {
-  questionName,
-  questionLink,
-  platform,
-  difficulty,
-  topic,
-  solveType,
-} = validation.data;
-
+    const {
+      questionName,
+      questionLink,
+      platform,
+      difficulty,
+      topic,
+      method,
+      solveType,
+    } = validation.data;
 
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
 
-    /* ========================
-       CREATE USER IF NOT EXISTS
-    ========================= */
+    /* CREATE USER IF NOT EXISTS */
     if (!userSnap.exists) {
       await userRef.set({
         name,
@@ -78,24 +99,35 @@ export const handleSubmitQuestion: RequestHandler = async (req: any, res) => {
       });
     }
 
-    /* ========================
-       SAVE SUBMISSION
-    ========================= */
-await userRef.collection("submissions").doc(submissionId).set({
-  id: submissionId,
-  questionName,
-  questionLink,   // ✅ add this
-  platform,
-  difficulty,
-  topic,
-  solveType,
-  submittedAt: new Date(),
-  submittedDate: today,
-});
+    /* PREVENT MULTIPLE SUBMISSIONS SAME DAY */
+    const existingToday = await userRef
+      .collection("submissions")
+      .where("submittedDate", "==", today)
+      .limit(1)
+      .get();
 
-    /* ========================
-       UPDATE STREAK
-    ========================= */
+    if (!existingToday.empty) {
+      return res.status(400).json({
+        success: false,
+        message: "You already submitted today",
+      });
+    }
+
+    /* SAVE SUBMISSION */
+    await userRef.collection("submissions").doc(submissionId).set({
+      id: submissionId,
+      questionName,
+      questionLink,
+      platform,
+      method,
+      difficulty,
+      topic,
+      solveType,
+      submittedAt: new Date(),
+      submittedDate: today,
+    });
+
+    /* UPDATE STREAK (CORRECT LOGIC) */
 
     const freshUserSnap = await userRef.get();
     const userData = freshUserSnap.data() as any;
@@ -108,6 +140,16 @@ await userRef.collection("submissions").doc(submissionId).set({
 
     const yesterday = addDays(today, -1);
 
+    // 🔥 Reset if skipped
+    if (
+      streak.lastSubmissionDate &&
+      streak.lastSubmissionDate !== yesterday &&
+      streak.lastSubmissionDate !== today
+    ) {
+      streak.currentStreak = 0;
+    }
+
+    // 🔥 Apply today's submission
     if (streak.lastSubmissionDate !== today) {
       if (streak.lastSubmissionDate === yesterday) {
         streak.currentStreak += 1;
@@ -124,9 +166,7 @@ await userRef.collection("submissions").doc(submissionId).set({
 
     await userRef.update({ streak });
 
-    /* ========================
-       SCHEDULE REVISIONS
-    ========================= */
+    /* SCHEDULE REVISIONS */
 
     const schedule = [1, 3, 7, 21];
 
@@ -138,6 +178,13 @@ await userRef.collection("submissions").doc(submissionId).set({
         submissionId,
         revisionNumber: i + 1,
         scheduledDate: addDays(today, schedule[i]),
+        completedDate: null,
+
+        // snapshot data (no extra reads needed)
+        questionName,
+        questionLink,
+        difficulty,
+        topic,
       });
     }
 
@@ -160,8 +207,11 @@ await userRef.collection("submissions").doc(submissionId).set({
 export const handleGetStreak: RequestHandler = async (req: any, res) => {
   try {
     const userId = req.user.uid;
+    const today = getTodayDate();
+    const yesterday = addDays(today, -1);
 
-    const userSnap = await db.collection("users").doc(userId).get();
+    const userRef = db.collection("users").doc(userId);
+    const userSnap = await userRef.get();
 
     if (!userSnap.exists) {
       return res.json({
@@ -174,15 +224,30 @@ export const handleGetStreak: RequestHandler = async (req: any, res) => {
       });
     }
 
-    const data = userSnap.data();
+    const userData = userSnap.data() as any;
+    let streak = userData.streak;
 
-    res.json({
-      success: true,
-      streak: data?.streak || {
+    if (!streak) {
+      streak = {
         currentStreak: 0,
         longestStreak: 0,
         lastSubmissionDate: "",
-      },
+      };
+    }
+
+    // Optional defensive reset
+    if (
+      streak.lastSubmissionDate &&
+      streak.lastSubmissionDate !== yesterday &&
+      streak.lastSubmissionDate !== today
+    ) {
+      streak.currentStreak = 0;
+      await userRef.update({ streak });
+    }
+
+    res.json({
+      success: true,
+      streak,
     });
 
   } catch (err) {

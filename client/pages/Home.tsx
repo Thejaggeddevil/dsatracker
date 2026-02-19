@@ -15,7 +15,7 @@ import { Flame, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ClickSpark from '@/components/ClickSpark';
 import { auth } from "@/lib/firebase";
-
+import { apiFetch } from '@/lib/api';
 
 interface Streak {
   currentStreak: number;
@@ -24,94 +24,95 @@ interface Streak {
   lastSubmissionDate?: string;
 }
 
-
 const Home = () => {
   const navigate = useNavigate();
-  
+
   const [streak, setStreak] = useState<Streak | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   // Form state
- const [questionName, setQuestionName] = useState('');
-const [questionLink, setQuestionLink] = useState('');
-const [platform, setPlatform] = useState('');
-
+  const [questionName, setQuestionName] = useState('');
+  const [questionLink, setQuestionLink] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [customPlatform, setCustomPlatform] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [topic, setTopic] = useState('');
   const [solveType, setSolveType] = useState('');
+  const [method, setMethod] = useState('');
+  const [customMethod, setCustomMethod] = useState('');
   const [submittedToday, setSubmittedToday] = useState(false);
 
-  // Check authentication and load streak
-useEffect(() => {
-  loadStreak();
-}, []);
-
-
+  useEffect(() => {
+    loadStreak();
+  }, []);
 
   const loadStreak = async () => {
-  try {
-    const token = await auth.currentUser?.getIdToken();
+    try {
+      const token = await auth.currentUser?.getIdToken();
 
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
-    const response = await fetch('/api/streak', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to load streak');
-    }
-
-    const data = await response.json();
-
-    if (data.success) {
-      setStreak(data.streak);
-
-      const today = new Date().toISOString().split('T')[0];
-      if (data.streak.lastSubmissionDate === today) {
-        setSubmittedToday(true);
+      if (!token) {
+        navigate('/login');
+        return;
       }
+
+      const response = await apiFetch('/api/streak', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load streak');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setStreak(data.streak);
+
+        const today = new Date().toISOString().split('T')[0];
+        if (data.streak.lastSubmissionDate === today) {
+          setSubmittedToday(true);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error loading streak:', error);
+      toast.error('Failed to load your streak');
+    } finally {
+      setLoading(false);
     }
-
-  } catch (error) {
-    console.error('Error loading streak:', error);
-    toast.error('Failed to load your streak');
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    // Validation
-    if (!questionName || !questionLink || !platform || !difficulty || !topic || !solveType){
-
+    if (
+      !questionName ||
+      !questionLink ||
+      !platform ||
+      !difficulty ||
+      !topic ||
+      !solveType ||
+      !method ||
+      (platform === "other" && !customPlatform) ||
+      (method === "other" && !customMethod)
+    ) {
       toast.error('All fields are required');
       setSubmitting(false);
       return;
     }
- 
 
-if (!questionLink.startsWith("http")) {
-  toast.error("Please enter a valid link");
-  setSubmitting(false);
-  return;
-}
-
+    if (!questionLink.startsWith("http")) {
+      toast.error("Please enter a valid link");
+      setSubmitting(false);
+      return;
+    }
 
     const token = await auth.currentUser?.getIdToken();
 
-
-
     try {
-      const response = await fetch('/api/submissions/submit', {
+      const response = await apiFetch('/api/submissions/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,10 +121,11 @@ if (!questionLink.startsWith("http")) {
         body: JSON.stringify({
           questionName,
           questionLink,
-          platform,
+          platform: platform === "other" ? customPlatform : platform,
           difficulty,
           topic,
-          solveType
+          solveType,
+          method: method === "other" ? customMethod : method
         })
       });
 
@@ -136,18 +138,20 @@ if (!questionLink.startsWith("http")) {
       }
 
       toast.success('🎉 Question submitted! Keep up the streak!');
-      
-      // Update streak
+
       setStreak(data.streak);
       setSubmittedToday(true);
 
-      // Reset form
       setQuestionName('');
       setQuestionLink('');
       setPlatform('');
+      setCustomPlatform('');
       setDifficulty('');
       setTopic('');
       setSolveType('');
+      setMethod('');
+      setCustomMethod('');
+
     } catch (error) {
       toast.error('An error occurred. Please try again.');
       console.error(error);
@@ -156,11 +160,9 @@ if (!questionLink.startsWith("http")) {
     }
   };
 
-
   if (loading) {
     return (
-     <Layout>
-
+      <Layout>
         <div className="flex items-center justify-center min-h-[calc(100vh-64px-100px)]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -170,13 +172,12 @@ if (!questionLink.startsWith("http")) {
 
   return (
     <ClickSpark sparkColor="rgba(10, 108, 199, 0.8)" sparkCount={10} sparkRadius={20} duration={500}>
-  <Layout>
+      <Layout>
 
-      
         <div className="container mx-auto px-4 py-8 max-w-4xl">
-          {/* Streak Card */}
+
+          {/* Streak Cards */}
           <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Current Streak */}
             <div className="rounded-xl border border-border bg-gradient-to-br from-success/10 to-success-light/10 p-6">
               <div className="flex items-center gap-3 mb-3">
                 <Flame className="w-6 h-6 text-success animate-pulse" />
@@ -188,7 +189,6 @@ if (!questionLink.startsWith("http")) {
               <p className="text-xs text-muted-foreground mt-2">days in a row</p>
             </div>
 
-            {/* Longest Streak */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Longest Streak</h3>
               <p className="text-4xl font-bold text-primary">
@@ -196,11 +196,8 @@ if (!questionLink.startsWith("http")) {
               </p>
               <p className="text-xs text-muted-foreground mt-2">days</p>
             </div>
-
-           
           </div>
 
-          {/* Alert if already submitted */}
           {submittedToday && (
             <div className="mb-6 p-4 rounded-lg bg-secondary/50 border border-border flex gap-3">
               <AlertCircle className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -216,40 +213,34 @@ if (!questionLink.startsWith("http")) {
           {/* Submission Form */}
           <div className="rounded-xl border border-border bg-card p-6 md:p-8">
             <h2 className="text-2xl font-bold mb-6">Daily Question Submission</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Submit one DSA problem per day to maintain your streak. Only one submission counts per calendar day.
-            </p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+
               <div>
-                <Label htmlFor="questionName">Question Name</Label>
+                <Label>Question Name</Label>
                 <Input
-                  id="questionName"
-                  placeholder="e.g., Two Sum, Longest Substring Without Repeating"
                   value={questionName}
                   onChange={(e) => setQuestionName(e.target.value)}
                   disabled={submitting}
                   className="mt-2"
                 />
               </div>
-              <div>
-  <Label htmlFor="questionLink">Question Link</Label>
-  <Input
-    id="questionLink"
-    placeholder="Paste problem link (e.g., https://leetcode.com/...)"
-    value={questionLink}
-    onChange={(e) => setQuestionLink(e.target.value)}
-    disabled={submitting}
-    className="mt-2"
-  />
-</div>
 
+              <div>
+                <Label>Question Link</Label>
+                <Input
+                  value={questionLink}
+                  onChange={(e) => setQuestionLink(e.target.value)}
+                  disabled={submitting}
+                  className="mt-2"
+                />
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="platform">Platform</Label>
-                  <Select value={platform} onValueChange={setPlatform}disabled={submitting}>
-                    <SelectTrigger id="platform" className="mt-2">
+                  <Label>Platform</Label>
+                  <Select value={platform} onValueChange={setPlatform} disabled={submitting}>
+                    <SelectTrigger className="mt-2">
                       <SelectValue placeholder="Select platform" />
                     </SelectTrigger>
                     <SelectContent>
@@ -258,12 +249,22 @@ if (!questionLink.startsWith("http")) {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {platform === "other" && (
+                    <Input
+                      placeholder="Enter platform name"
+                      value={customPlatform}
+                      onChange={(e) => setCustomPlatform(e.target.value)}
+                      disabled={submitting}
+                      className="mt-3"
+                    />
+                  )}
                 </div>
 
                 <div>
-                  <Label htmlFor="difficulty">Difficulty</Label>
+                  <Label>Difficulty</Label>
                   <Select value={difficulty} onValueChange={setDifficulty} disabled={submitting}>
-                    <SelectTrigger id="difficulty" className="mt-2">
+                    <SelectTrigger className="mt-2">
                       <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
                     <SelectContent>
@@ -276,9 +277,9 @@ if (!questionLink.startsWith("http")) {
               </div>
 
               <div>
-                <Label htmlFor="topic">Topic</Label>
+                <Label>Topic</Label>
                 <Select value={topic} onValueChange={setTopic} disabled={submitting}>
-                  <SelectTrigger id="topic" className="mt-2">
+                  <SelectTrigger className="mt-2">
                     <SelectValue placeholder="Select topic" />
                   </SelectTrigger>
                   <SelectContent>
@@ -295,11 +296,48 @@ if (!questionLink.startsWith("http")) {
                   </SelectContent>
                 </Select>
               </div>
+  <div>
+                <Label>Method Used</Label>
+                <Select value={method} onValueChange={setMethod} disabled={submitting}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Select method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Two Pointer">Two Pointer</SelectItem>
+                    <SelectItem value="Sliding Window">Sliding Window</SelectItem>
+                    <SelectItem value="HashMap">HashMap</SelectItem>
+                    <SelectItem value="HashSet">HashSet</SelectItem>
+                    <SelectItem value="Binary Search">Binary Search</SelectItem>
+                    <SelectItem value="Greedy">Greedy</SelectItem>
+                    <SelectItem value="Recursion">Recursion</SelectItem>
+                    <SelectItem value="Backtracking">Backtracking</SelectItem>
+                    <SelectItem value="Dynamic Programming">Dynamic Programming</SelectItem>
+                    <SelectItem value="DFS">DFS</SelectItem>
+                    <SelectItem value="BFS">BFS</SelectItem>
+                    <SelectItem value="Stack">Stack</SelectItem>
+                    <SelectItem value="Queue">Queue</SelectItem>
+                    <SelectItem value="Heap">Heap</SelectItem>
+                    <SelectItem value="Trie">Trie</SelectItem>
+                    <SelectItem value="Bit Manipulation">Bit Manipulation</SelectItem>
+                    <SelectItem value="Union Find">Union Find</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
 
+                {method === "other" && (
+                  <Input
+                    placeholder="Enter custom method"
+                    value={customMethod}
+                    onChange={(e) => setCustomMethod(e.target.value)}
+                    disabled={submitting}
+                    className="mt-3"
+                  />
+                )}
+              </div>
               <div>
-                <Label htmlFor="solveType">How did you solve it?</Label>
+                <Label>How did you solve it?</Label>
                 <Select value={solveType} onValueChange={setSolveType} disabled={submitting}>
-                  <SelectTrigger id="solveType" className="mt-2">
+                  <SelectTrigger className="mt-2">
                     <SelectValue placeholder="Select solve type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -308,8 +346,9 @@ if (!questionLink.startsWith("http")) {
                     <SelectItem value="solution">Saw solution</SelectItem>
                   </SelectContent>
                 </Select>
-                
               </div>
+
+            
 
               <Button
                 type="submit"
@@ -331,20 +370,16 @@ if (!questionLink.startsWith("http")) {
             </form>
           </div>
 
-          {/* Info Box */}
-        
+          <div className="p-4 rounded-lg bg-secondary/50 border border-border mt-6">
+            <h4 className="font-medium text-sm mb-2">Streak Rules</h4>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>✓ Locked to calendar day</li>
+              <li>✓ Miss a day = streak resets</li>
+            </ul>
+          </div>
 
-            <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-              <h4 className="font-medium text-sm mb-2"> Streak Rules</h4>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>✓ Locked to calendar day</li>
-                <li>✓ Miss a day = streak resets</li>
-              </ul>
-            </div>
-          
         </div>
-      
-    </Layout>
+      </Layout>
     </ClickSpark>
   );
 };

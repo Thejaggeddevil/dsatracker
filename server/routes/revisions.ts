@@ -1,14 +1,34 @@
-import { RequestHandler } from 'express';
-import { z } from 'zod';
-import { revisionDb, submissionDb, streakDb } from '../db/database';
+import { RequestHandler } from "express";
+import { db } from "../firebaseAdmin";
 
-const MarkRevisionSchema = z.object({
-  revisionId: z.string().min(1)
-});
+/* ================================
+   HELPER: Get IST Date
+================================ */
 
-// Get today's date as YYYY-MM-DD
 function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const istDate = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+  );
+  return istDate.toISOString().split("T")[0];
+}
+
+/* ================================
+   TYPES
+================================ */
+
+interface RevisionDoc {
+  id: string;
+  submissionId: string;
+  questionName?: string;
+  questionLink?: string;
+  difficulty?: string;
+  topic?: string;
+  revisionNumber: number;
+  scheduledDate: string;
+  completedDate?: string | null;
+  note?: string | null;
+  color?: string | null;
 }
 
 /* ================================
@@ -18,39 +38,39 @@ function getTodayDate(): string {
 export const handleGetDueRevisions: RequestHandler = async (req: any, res) => {
   try {
     const userId = req.user.uid;
-
     const today = getTodayDate();
-    const dueRevisions = revisionDb.findDueByUserIdAndDate(userId, today);
 
-    const result = dueRevisions.map(rev => {
-      const submission = submissionDb.findById(rev.submissionId);
+    const snapshot = await db
+      .collection("users")
+      .doc(userId)
+      .collection("revisions")
+      .where("scheduledDate", "<=", today)
+      .get();
 
-      const daysSince = rev.lastRevisedAt
-        ? Math.floor(
-            (Date.now() - new Date(rev.lastRevisedAt).getTime()) /
-              (1000 * 60 * 60 * 24)
-          )
-        : 0;
+    const revisions: RevisionDoc[] = snapshot.docs.map((doc) => {
+      const data = doc.data() as Omit<RevisionDoc, "id">;
 
       return {
-        id: rev.id,
-        submissionId: rev.submissionId,
-        questionName: submission?.questionName || 'Unknown',
-        difficulty: submission?.difficulty || 'unknown',
-        topic: submission?.topic || 'Unknown',
-        revisionNumber: rev.revisionNumber,
-        scheduledDate: rev.scheduledDate,
-        daysSinceLastRevision: Math.max(0, daysSince)
+        id: doc.id,
+        ...data,
       };
     });
 
+    const filtered = revisions
+      .filter((rev) => !rev.completedDate)
+      .sort(
+        (a, b) =>
+          new Date(a.scheduledDate).getTime() -
+          new Date(b.scheduledDate).getTime()
+      );
+
     res.json({
       success: true,
-      revisions: result
+      revisions: filtered, // ✅ return filtered not revisions
     });
 
   } catch (err) {
-    console.error('Get due revisions error:', err);
+    console.error("Get due revisions error:", err);
     res.status(500).json({ success: false });
   }
 };
@@ -62,61 +82,145 @@ export const handleGetDueRevisions: RequestHandler = async (req: any, res) => {
 export const handleMarkRevision: RequestHandler = async (req: any, res) => {
   try {
     const userId = req.user.uid;
+    const { revisionId } = req.body;
 
-    const validation = MarkRevisionSchema.safeParse(req.body);
-    if (!validation.success) {
+    if (!revisionId) {
       return res.status(400).json({
         success: false,
-        message: validation.error.issues[0]?.message
+        message: "revisionId is required",
       });
     }
 
-    const revision = revisionDb.findById(validation.data.revisionId);
+    const revisionRef = db
+      .collection("users")
+      .doc(userId)
+      .collection("revisions")
+      .doc(revisionId);
 
-    if (!revision || revision.userId !== userId) {
+    const revisionSnap = await revisionRef.get();
+
+    if (!revisionSnap.exists) {
       return res.status(404).json({
         success: false,
-        message: 'Revision not found'
+        message: "Revision not found",
       });
     }
 
-    const today = getTodayDate();
-
-    if (today < revision.scheduledDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Revision is not yet due'
-      });
-    }
+    const revision = revisionSnap.data() as RevisionDoc;
 
     if (revision.completedDate) {
       return res.status(400).json({
         success: false,
-        message: 'Revision already completed'
+        message: "Already completed",
       });
     }
 
-    revision.completedDate = today;
-    revision.lastRevisedAt = new Date();
-    revisionDb.update(revision);
-
-    const streak = streakDb.getOrCreate(userId);
-    streak.totalPoints += revision.points;
-    streak.updatedAt = new Date();
-    streakDb.update(streak);
+    await revisionRef.update({
+      completedDate: getTodayDate(),
+      lastRevisedAt: new Date(),
+    });
 
     res.json({
       success: true,
-      message: 'Revision marked as complete',
-      pointsEarned: revision.points
+      message: "Revision marked as complete",
     });
 
   } catch (err) {
-    console.error('Mark revision error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
+    console.error("Mark revision error:", err);
+    res.status(500).json({ success: false });
+  }
+};
+
+/* ================================
+   SAVE / UPDATE NOTE
+================================ */
+
+export const handleSaveRevisionNote: RequestHandler = async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    const { revisionId, note, color } = req.body;
+
+    if (!revisionId) {
+      return res.status(400).json({
+        success: false,
+        message: "revisionId is required",
+      });
+    }
+
+    const revisionRef = db
+      .collection("users")
+      .doc(userId)
+      .collection("revisions")
+      .doc(revisionId);
+
+    const revisionSnap = await revisionRef.get();
+
+    if (!revisionSnap.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Revision not found",
+      });
+    }
+
+    await revisionRef.set(
+      {
+        note: note ?? "",
+        color: color ?? "#F5E6D3",
+        noteUpdatedAt: new Date(),
+      },
+      { merge: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Note saved successfully",
     });
+
+  } catch (err) {
+    console.error("Save note error:", err);
+    res.status(500).json({ success: false });
+  }
+};
+
+/* ================================
+   DELETE NOTE
+================================ */
+
+export const handleDeleteRevisionNote: RequestHandler = async (req: any, res) => {
+  try {
+    const userId = req.user.uid;
+    const revisionId = req.params.id;
+
+    if (!revisionId) {
+      return res.status(400).json({
+        success: false,
+        message: "revisionId is required",
+      });
+    }
+
+    const revisionRef = db
+      .collection("users")
+      .doc(userId)
+      .collection("revisions")
+      .doc(revisionId);
+
+    await revisionRef.set(
+      {
+        note: null,
+        color: null,
+        noteUpdatedAt: null,
+      },
+      { merge: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Note deleted successfully",
+    });
+
+  } catch (err) {
+    console.error("Delete note error:", err);
+    res.status(500).json({ success: false });
   }
 };
 
@@ -128,31 +232,36 @@ export const handleGetRevisionHistory: RequestHandler = async (req: any, res) =>
   try {
     const userId = req.user.uid;
 
-    const allRevisions = revisionDb.findByUserId(userId);
+    const snapshot = await db
+      .collection("users")
+      .doc(userId)
+      .collection("revisions")
+      .get();
 
-    const result = allRevisions.map(rev => {
-      const submission = submissionDb.findById(rev.submissionId);
+    const history: RevisionDoc[] = snapshot.docs.map((doc) => {
+      const data = doc.data() as Omit<RevisionDoc, "id">;
 
       return {
-        id: rev.id,
-        submissionId: rev.submissionId,
-        questionName: submission?.questionName || 'Unknown',
-        difficulty: submission?.difficulty || 'unknown',
-        topic: submission?.topic || 'Unknown',
-        revisionNumber: rev.revisionNumber,
-        scheduledDate: rev.scheduledDate,
-        completedDate: rev.completedDate,
-        status: rev.completedDate ? 'completed' : 'pending'
+        id: doc.id,
+        ...data,
       };
     });
 
+    const filtered = history
+      .filter((rev) => !!rev.completedDate)
+      .sort(
+        (a, b) =>
+          new Date(b.completedDate as string).getTime() -
+          new Date(a.completedDate as string).getTime()
+      );
+
     res.json({
       success: true,
-      revisions: result
+      revisions: filtered,
     });
 
   } catch (err) {
-    console.error('Get revision history error:', err);
+    console.error("Get revision history error:", err);
     res.status(500).json({ success: false });
   }
 };

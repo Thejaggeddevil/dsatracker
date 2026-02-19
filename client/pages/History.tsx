@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { Loader2, MoreVertical } from "lucide-react";
+import { Loader2,Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRef } from "react";
 import ClickSpark from "@/components/ClickSpark";
+import { apiFetch } from "@/lib/api";
+
+
 
 
 interface Submission {
@@ -18,8 +21,10 @@ interface Submission {
   topic: string;
   solveType: string;
   points: number;
-  submittedAt: string;
+  submittedAt: string | { _seconds: number };
   submittedDate: string;
+  method: string;
+
 }
 
 const History = () => {
@@ -84,7 +89,7 @@ const [deleteId, setDeleteId] = useState<string | null>(null);
 
       const token = await user.getIdToken();
 
-      const response = await fetch(`/api/submissions/${id}`, {
+      const response = await apiFetch(`/api/submissions/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -200,6 +205,25 @@ const getColor = (count: number) => {
       </Layout>
     );
   }
+const formatDateTime = (value: any) => {
+  if (!value) return "";
+
+  let date: Date;
+
+  if (value._seconds) {
+    date = new Date(value._seconds * 1000);
+  } else {
+    date = new Date(value);
+  }
+
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
   return (
     <ClickSpark
@@ -230,14 +254,14 @@ const getColor = (count: number) => {
                 <div ref={menuRef} className="absolute top-3 right-3">
 
                   <button
-                   onClick={() => {
-                   setDeleteId(submission.id);
-                  setOpenMenu(null);
-                }}
+  onClick={() => {
+    setDeleteId(submission.id);
+  }}
+  className="text-destructive hover:opacity-80 transition"
+>
+  <Trash2 className="w-5 h-5" />
+</button>
 
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
 
                   {openMenu === submission.id && (
                     <div className="absolute right-0 mt-2 w-28 bg-card border rounded shadow-lg">
@@ -261,8 +285,13 @@ const getColor = (count: number) => {
                 </a>
 
                 <p className="text-sm text-muted-foreground mt-1">
-                  {submission.platform} • {submission.difficulty} • {submission.topic}
-                </p>
+  {submission.platform} • {submission.difficulty} • {submission.topic} • {submission.method}
+</p>
+
+                <p className="text-xs text-muted-foreground mt-1">
+  Submitted on {formatDateTime(submission.submittedAt)}
+</p>
+
               </div>
             ))}
 

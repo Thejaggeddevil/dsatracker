@@ -137,7 +137,7 @@ const Layout = ({ children, hideNav }: LayoutProps) => {
                 onClick={toggleTheme}
                 className="p-2 rounded-lg border border-border"
               >
-                {theme === "dark" ? "🌙" : "☀️"}
+                {theme === "dark" ? "☀️" : "🌙"}
               </button>
 
               {/* Desktop Logout */}
@@ -170,7 +170,7 @@ const Layout = ({ children, hideNav }: LayoutProps) => {
 
       {/* FOOTER */}
       <footer className="border-t py-6 text-center text-sm text-muted-foreground">
-        created with ❤️ by mansi.dev
+        created with ❤️ by mansi.code
       </footer>
     </div>
   );

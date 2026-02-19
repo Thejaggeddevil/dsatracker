@@ -8,6 +8,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import LogoImage from '@/image/fire.png';
 export default function Index() {
   const navigate = useNavigate();
+  
 
   useEffect(() => {
     // Proper Firebase auth check
