@@ -6,9 +6,8 @@ import { useEffect, useState } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "./components/ui/toaster";
+import { Toaster as Sonner } from "./components/ui/sonner";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -19,17 +18,17 @@ import Revisions from "./pages/Revisions";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
-import { auth } from "@/lib/firebase";
+import { auth } from "./lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 
-import { playClickSound, unlockAudio } from "@/lib/sound";
+import { playClickSound, unlockAudio } from "./lib/sound";
 import ScrollToTop from "./components/ScrollToTop";
-import { ThemeProvider } from "@/components/ThemeProvider"; // ✅ IMPORTANT
+import { ThemeProvider } from "./components/ThemeProvider";
+
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 
 const queryClient = new QueryClient();
 
-/* 🔐 Protected Route */
 const ProtectedRoute = ({
   user,
   children,
@@ -47,17 +46,14 @@ const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  /* 🔥 Firebase Auth Listener */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setAuthLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
-  /* 🔊 Unlock audio */
   useEffect(() => {
     const unlock = () => {
       unlockAudio();
@@ -66,7 +62,6 @@ const App = () => {
     document.addEventListener("click", unlock);
   }, []);
 
-  /* 🔊 Button click sound */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -150,7 +145,6 @@ const App = () => {
   );
 };
 
-/* ✅ Wrap App with ThemeProvider */
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider>
     <App />
