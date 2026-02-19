@@ -2,7 +2,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 
-import { handleDemo } from "./routes/demo";
 import { handleSubmitQuestion, handleGetStreak, handleGetSubmissions, handleDeleteSubmission } from "./routes/submissions";
 import { handleGetDueRevisions, handleMarkRevision, handleGetRevisionHistory, handleSaveRevisionNote, handleDeleteRevisionNote } from "./routes/revisions";
 import { handleGetProfile, handleUpdateProfile } from "./routes/profile";
@@ -18,13 +17,11 @@ export function createServer() {
   // Global Middleware
   app.use(
   cors({
-    origin: [
-      "http://localhost:5173", // local
-      "https://your-vercel-domain.vercel.app", // temporary placeholder
-    ],
+    origin: true,
     credentials: true,
   })
 );
+
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -62,7 +59,7 @@ app.delete("/api/revisions/note/:id", verifyFirebaseToken, handleDeleteRevisionN
     res.json({ message: ping });
   });
 
-  app.get("/api/demo", handleDemo);
+ 
 
   return app;
 }
