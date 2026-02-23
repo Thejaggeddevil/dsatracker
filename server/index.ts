@@ -38,6 +38,7 @@ export function createServer() {
   const allowedOrigins = [
     "http://localhost:5173",
     "https://dsatracker-sandy.vercel.app",
+    "https://consistencywithdsa.vercel.app"
   ];
 
   app.use(
