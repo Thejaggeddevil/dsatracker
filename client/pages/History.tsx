@@ -45,9 +45,9 @@ const History = () => {
 
       try {
         const token = await user.getIdToken();
-        const response = await fetch("/api/submissions/list", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await apiFetch("/api/submissions/list", {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
         const data = await response.json();
         if (data.success) {
