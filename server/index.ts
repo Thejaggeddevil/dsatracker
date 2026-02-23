@@ -34,31 +34,28 @@ export function createServer() {
   /* =========================================
      CORS CONFIG (FIXED FOR VERCEL + RENDER)
   ========================================== */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://dsatracker-sandy.vercel.app"
+];
 
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "https://dsatracker-sandy.vercel.app",
-  ];
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
 
-  app.use(
-    cors({
-      origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
-        if (allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-    })
-  );
-
-  // Handle preflight explicitly
-  app.options("*", cors());
+// VERY IMPORTANT
+app.options("*", cors());
 
   /* =========================================
      GLOBAL MIDDLEWARE
