@@ -7,7 +7,7 @@ import {
   handleGetStreak,
   handleGetSubmissions,
   handleDeleteSubmission,
-} from "./routes/submissions.js";
+} from "./routes/submissions";
 
 import {
   handleGetDueRevisions,
@@ -15,15 +15,15 @@ import {
   handleGetRevisionHistory,
   handleSaveRevisionNote,
   handleDeleteRevisionNote,
-} from "./routes/revisions.js";
+} from "./routes/revisions";
 
 import {
   handleGetProfile,
   handleUpdateProfile,
-} from "./routes/profile.js";
+} from "./routes/profile";
 
-import { initDatabase } from "./db/database.js";
-import { verifyFirebaseToken } from "./middleware/verifyFirebaseToken.js";
+import { initDatabase } from "./db/database";
+import { verifyFirebaseToken } from "./middleware/verifyFirebaseToken";
 
 export function createServer() {
   const app = express();
@@ -32,30 +32,31 @@ export function createServer() {
   initDatabase();
 
   /* =========================================
-     CORS CONFIG (FIXED FOR VERCEL + RENDER)
+     CORS CONFIG (SAFE + RENDER + VERCEL)
   ========================================== */
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://dsatracker-sandy.vercel.app"
-];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "https://dsatracker-sandy.vercel.app",
+  ];
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
 
-// VERY IMPORTANT
-app.options("*", cors());
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        return callback(new Error("Not allowed by CORS"));
+      },
+      credentials: true,
+    })
+  );
+
+  // Explicit preflight handling
+  app.options("*", cors());
 
   /* =========================================
      GLOBAL MIDDLEWARE
@@ -65,23 +66,20 @@ app.options("*", cors());
   app.use(express.urlencoded({ extended: true }));
 
   /* =========================================
-     PROTECTED ROUTES (Firebase Verified)
+     PROTECTED ROUTES
   ========================================== */
 
-  // Submission routes
   app.post("/api/submissions/submit", verifyFirebaseToken, handleSubmitQuestion);
   app.get("/api/submissions/list", verifyFirebaseToken, handleGetSubmissions);
   app.get("/api/streak", verifyFirebaseToken, handleGetStreak);
   app.delete("/api/submissions/:id", verifyFirebaseToken, handleDeleteSubmission);
 
-  // Revision routes
   app.get("/api/revisions/due", verifyFirebaseToken, handleGetDueRevisions);
   app.post("/api/revisions/mark", verifyFirebaseToken, handleMarkRevision);
   app.get("/api/revisions/history", verifyFirebaseToken, handleGetRevisionHistory);
   app.post("/api/revisions/note", verifyFirebaseToken, handleSaveRevisionNote);
   app.delete("/api/revisions/note/:id", verifyFirebaseToken, handleDeleteRevisionNote);
 
-  // Profile routes
   app.get("/api/profile", verifyFirebaseToken, handleGetProfile);
   app.put("/api/profile", verifyFirebaseToken, handleUpdateProfile);
 
@@ -90,9 +88,20 @@ app.options("*", cors());
   ========================================== */
 
   app.get("/api/ping", (_req, res) => {
-    const ping = process.env.PING_MESSAGE ?? "ping";
-    res.json({ message: ping });
+    res.json({ message: process.env.PING_MESSAGE ?? "ping" });
   });
 
   return app;
 }
+
+/* =========================================
+   START SERVER (RENDER SAFE)
+========================================= */
+
+const PORT = process.env.PORT || 5000;
+
+const app = createServer();
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
