@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "cd client && pnpm dev",
-    "build": "cd client && pnpm build",
-    "start": "node dist/server/node-build.mjs"
-  },
+  "build": "pnpm run build:client && pnpm run build:server",
+  "build:client": "cd client && pnpm build",
+  "build:server": "pnpm --filter server build",
+  "start": "pnpm --filter server start"
+},
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.2.1",
