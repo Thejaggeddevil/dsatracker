@@ -1,13 +1,11 @@
 {
   "name": "fusion-starter",
   "private": true,
-  "type": "module",
+  
   "scripts": {
-  "build": "pnpm run build:client && pnpm run build:server",
-  "build:client": "cd client && pnpm build",
-  "build:server": "pnpm --filter server build",
-  "start": "pnpm --filter server start"
-},
+    "build:server": "tsc -p server/tsconfig.json",
+    "start": "node dist/server/index.js"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.2.1",
@@ -20,7 +18,8 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.2.1",
-    "tsx": "^4.20.3"
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@10.14.0"
 }
