@@ -117,8 +117,6 @@ Unlike basic trackers, this system:
 
 ## Screenshots
 
-Upload screenshots to a `screenshots/` folder inside the repo.
-
 ### Home Screen
 
 ![Home Screenshot](https://github.com/user-attachments/assets/894ea1c1-5f48-40a3-adfe-611156d85881)
