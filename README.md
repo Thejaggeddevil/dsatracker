@@ -180,7 +180,6 @@ FIREBASE_PRIVATE_KEY=...
 FIREBASE_CLIENT_EMAIL=...
 ```
 
-Never push backend secrets to GitHub.
 
 ---
 
