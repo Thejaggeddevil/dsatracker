@@ -133,9 +133,7 @@ Upload screenshots to a `screenshots/` folder inside the repo.
 
 ### Revisions Screen
 
-Replace this with your image:
-
-![Revisions Screenshot](./screenshots/revisions.png)
+![Revisions Screenshot](https://github.com/user-attachments/assets/44cd22fd-39da-4b4b-b3d0-f222e64b3b69)
 
 ---
 
